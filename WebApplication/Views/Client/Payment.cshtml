@@ -1,0 +1,13 @@
+﻿@model PaymentModel
+<div class="text-left text-info">
+    <h1>Оплатить посещение №@ViewBag.Visit.Id</h1>
+</div>
+@using (Html.BeginForm())
+{
+    @Html.ValidationSummary()
+
+    <p>Остаток: @ViewBag.LeftSum</p>
+    <p>Сумма: <input type="number" min="1" max="@ViewBag.LeftSum" name="Model.Sum" /></p>
+    <input type="hidden" name="Model.VisitId" value="@((int)ViewBag.Visit.Id)" />
+    <button type="submit" class="btn btn-info btn-sm">Оплатить</button>
+}

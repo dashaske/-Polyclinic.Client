@@ -1,0 +1,112 @@
+﻿
+@model WebApplication.Models.ReportModel
+
+@{
+    ViewData["Title"] = "Посещение";
+}
+
+<div class="text-center text-info">
+    <h1>Пoсещения</h1>
+</div>
+<hr />
+<p> <strong> <a class="btn btn-info btn-sm" asp-area="" asp-controller="Client" asp-action="CreateVisit">Оформить</a></strong></p>
+<hr />
+
+@using (Html.BeginForm())
+{
+    <p>
+        Выберите даты для отображения отчета по посещениям и оплатам
+    </p>
+    <p>
+        От: @Html.EditorFor(model => model.DateFrom)
+    </p>
+    <p>
+        До: @Html.EditorFor(model => model.DateTo)
+    </p>
+    <p>
+        <button type="submit" class="btn btn-info btn-sm">Получить</button>
+    </p>
+    @Html.ValidationSummary(true, "", new { @style = "color: red" })
+}
+<hr />
+@foreach (var visit in ViewBag.Visits)
+{
+    <p><strong>Номер: @visit.Id </strong></p>
+    <p>Дата: @visit.Date</p>
+    <p>Статус: @visit.Status</p>
+    <p>Цена: @visit.Summ</p>
+    <p>Состав:</p>
+    <table class="table">
+        <tr>
+            <td>Обследование</td>
+            <td>Doctor</td>
+            <td>Количество</td>
+            <td>Цена</td>
+        </tr>
+        @foreach (BusinessLogic.ViewModels.InspectionsDoctorsViewModels vdoctor in ViewBag.InspectionsDoctors)
+
+        {
+            @foreach (BusinessLogic.ViewModels.InspectionsViewModels ins in ViewBag.Inspections)
+            {
+                @foreach (var doctor in ViewBag.Doctor)
+                {
+                    @if ((visit.Id == vdoctor.VisitId) && (vdoctor.InspectionId == ins.Id) && (ins.UserId == doctor.Id))
+                    {
+                        <tr>
+                            <td>@ins.Name</td>
+                            <td>@doctor.FIO</td>
+                            <td>@vdoctor.Count</td>
+                            <td>@ViewBag.Cena[(int)ins.Id]</td>
+                        </tr>
+                    }
+                }
+            }
+        }
+    </table>
+    if (visit.Status != BusinessLogic.Enum.StatusVisit.Неоплачен && ViewBag.Payments != null)
+    {
+        <p>Платежи:</p>
+        <table class="table">
+            <tr>
+                <td>Дата</td>
+                <td>Сумма</td>
+            </tr>
+            @foreach (BusinessLogic.ViewModels.PaymentsViewModels payment in ViewBag.Payments)
+            {
+                if (payment.VisitId == visit.Id)
+                {
+                    <tr>
+                        <td>@payment.DatePayment</td>
+                        <td>@payment.SumPaument</td>
+                    </tr>
+                }
+            }
+        </table>
+    }
+    <hr />
+    if (visit.Status == BusinessLogic.Enum.StatusVisit.Оплачен)
+    {
+        <p>Полностью оплачено</p>
+        <hr />
+    }
+    else
+    {
+        if (visit.Status == BusinessLogic.Enum.StatusVisit.ЧастичноОплачен)
+        {
+            <p>К оплате: @(visit.Summ-ViewBag.Pay[visit.Id])</p>
+            <hr />
+
+        }
+        <p>
+            <a href="/Client/Payment/@visit.Id">Оплатить</a>
+        </p>
+    }
+    <p>
+        <a href="/Client/SendReport/@visit.Id">Отправить список оплат по визиту в формате .pdf</a>
+    </p>
+    <hr />
+
+}
+<p>
+    <a href="/Client/SendReport">Отправить список визитов и оплат по ним в формате .pdf</a>
+</p>

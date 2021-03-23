@@ -1,0 +1,43 @@
+﻿@model WebApplication.Models.CreateVisitModel
+
+@{
+    ViewData["Title"] = "Создать посещение";
+}
+
+<div class="text-center text-info">
+    <h1>@ViewData["Title"]</h1>
+</div>
+<hr />
+
+@using (Html.BeginForm())
+{
+    @Html.ValidationSummary(true, "", new { @style = "color: red" })
+    <p>Состав:</p>
+    <table class="table">
+        <tr>
+            <td>Обследование</td>
+            <td>Доктор</td>
+            <td>Количество</td>
+            <td>Цена</td>
+        </tr>
+
+        @foreach (BusinessLogic.ViewModels.InspectionsViewModels ins in ViewBag.Inspections)
+        {
+            @foreach (var doctor in ViewBag.Doctor)
+            {
+                @if ((ins.UserId == doctor.Id))
+                {
+                    <tr>
+                        <td>@ins.Name</td>
+                        <td>@doctor.FIO</td>
+                        <td><input type="number" name="Model.VisitDoctors[@ins.Id]" value="0" min="0"/></td>
+                        <td>@ViewBag.Cena[(int)ins.Id]</td>
+                    </tr>
+                }
+            }
+        }
+
+    </table>
+    @Html.ValidationSummary(true, "", new { @style = "color: red" })
+    <button type="submit" class="btn btn-info btn-sm">Создать</button>
+}
