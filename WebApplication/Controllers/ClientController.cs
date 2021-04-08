@@ -109,12 +109,12 @@ namespace WebApplication.Controllers
         {
             var Visit = visit.Read(new VisitBindingModel { ClientId = (int)Program.User.Id }, new DateTime(), DateTime.Now);
             var Title = $"Список визитов и платежей по ним клиента {Program.User.FIO}";
-            var FileName = $"C:\\data\\ReportVisit{Program.User.FIO}.pdf";
+            var FileName = $"D:\\data\\ReportVisit{Program.User.FIO}.pdf";
             if (id != 0)
             {
                 Visit = visit.Read(new VisitBindingModel { Id = id }, new DateTime(), DateTime.Now);
                 Title = $"Список платежей по визиту {id} клиента {Program.User.FIO}";
-                FileName = $"C:\\data\\ReportVisitId{id}Client{Program.User.FIO}.pdf";
+                FileName = $"D:\\data\\ReportVisitId{id}Client{Program.User.FIO}.pdf";
             }
             ReportLogic.CreateDoc(new PdfInfo
             {
