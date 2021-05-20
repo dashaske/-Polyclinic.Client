@@ -8,7 +8,9 @@ namespace BusinessLogic.Interfaces
 {
     public interface IInspections
     {
-        List<InspectionsViewModels> Read(InspectionsBindingModel model);
-        List<CostInspectionsViewModels> ReadCI(CostInspectionsBindingModel model);
+        List<InspectionsViewModels> GetFullList();
+        InspectionsViewModels GetElement(InspectionsBindingModel model);
+        CostInspectionsViewModels GetElement(CostInspectionsBindingModel model);
+        List<InspectionsViewModels> GetFilteredList(InspectionsBindingModel model);
     }
 }

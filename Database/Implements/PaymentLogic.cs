@@ -11,40 +11,18 @@ namespace Database.Implements
 {
     public class PaymentLogic : IPayment
     {
-        public void CreateOrUpdate(PaymentsBindingModel model)
+        public List<PaymentsViewModels> GetFilteredList(PaymentsBindingModel model)
         {
-            using (var context = new Database())
+            if (model == null)
             {
-                Payment element = model.Id.HasValue ? null : new Payment();
-                if (model.Id.HasValue)
-                {
-                    element = context.Payments.FirstOrDefault(rec => rec.Id == model.Id);
-                    if (element == null)
-                    {
-                        throw new Exception("Элемент не найден");
-                    }
-                }
-                else
-                {
-                    element = new Payment();
-                    context.Payments.Add(element);
-                }
-                element.VisitId = model.VisitId;
-                element.DatePayment = model.DatePayment;
-                element.SumPaument = model.SumPaument;
-                element.ClientId = model.ClientId;
-                context.SaveChanges();
+                return null;
             }
-        }
-
-        public List<PaymentsViewModels> Read(PaymentsBindingModel model)
-        {
             using (var context = new Database())
             {
                 return context.Payments
-                 .Where(rec => model == null
-                   || rec.Id == model.Id
-                   || rec.VisitId == model.VisitId)
+               .Where(rec => rec.VisitId == model.VisitId
+               )
+               .ToList()
                .Select(rec => new PaymentsViewModels
                {
                    Id = rec.Id,
@@ -53,7 +31,100 @@ namespace Database.Implements
                    DatePayment = rec.DatePayment,
                    SumPaument = rec.SumPaument
                })
-                .ToList();
+               .ToList();
+            }
+        }
+        private Payment CreateModel(PaymentsBindingModel model, Payment payment, Database context)
+        {
+            payment.VisitId = model.VisitId;
+            payment.ClientId = model.ClientId;
+            payment.DatePayment = model.DatePayment;
+            payment.SumPaument = model.SumPaument;
+            return payment;
+        }
+        public void Update(PaymentsBindingModel model)
+        {
+            using (var context = new Database())
+            {
+                using (var transaction = context.Database.BeginTransaction())
+                {
+                    try
+                    {
+                        var payments = context.Payments.FirstOrDefault(rec => rec.Id == model.Id);
+                        if (payments == null)
+                        {
+                            throw new Exception("Заказ не найдена");
+                        }
+                        CreateModel(model, payments, context);
+                        context.SaveChanges();
+                        transaction.Commit();
+                    }
+                    catch
+                    {
+                        transaction.Rollback();
+                        throw;
+                    }
+                }
+            }
+        }
+        public void Insert(PaymentsBindingModel model)
+        {
+            using (var context = new Database())
+            {
+                using (var transaction = context.Database.BeginTransaction())
+                {
+                    try
+                    {
+                        Payment cost = new Payment();
+                        context.Payments.Add(cost);
+                        CreateModel(model, cost, context);
+                        context.SaveChanges();
+                        transaction.Commit();
+                    }
+                    catch
+                    {
+                        transaction.Rollback();
+                        throw;
+                    }
+                }
+            }
+        }
+        public PaymentsViewModels GetElement(PaymentsBindingModel model)//не используется
+        {
+            if (model == null)
+            {
+                return null;
+            }
+            using (var context = new Database())
+            {
+                var component = context.Payments
+                .FirstOrDefault(rec => rec.Id == model.Id);
+                return component != null ?
+                new PaymentsViewModels
+                {
+                    Id = component.Id,
+                    VisitId = component.VisitId,
+                    ClientId = component.ClientId,
+                    DatePayment = component.DatePayment,
+                    SumPaument = component.SumPaument
+                } :
+               null;
+            }
+        }
+        public List<PaymentsViewModels> GetFullList()
+        {
+            using (var context = new Database())
+            {
+                return context.Payments
+                .Select(rec => new PaymentsViewModels
+                {
+                    Id = rec.Id,
+                    VisitId = rec.VisitId,
+                    ClientId = rec.ClientId,
+                    DatePayment = rec.DatePayment,
+                    SumPaument = rec.SumPaument
+                })
+               .ToList();
             }
         }
     }

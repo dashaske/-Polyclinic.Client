@@ -12,5 +12,7 @@ namespace BusinessLogic.BindingModel
         public decimal Summ { get; set; }
         public DateTime Date { get; set; }
         public StatusVisit Status { get; set; }
+        public Dictionary<int, int> visitInspections { get; set; }// costid, cena
+        public Dictionary<int, decimal> visitPayments { get; set; }// costid, cena
     }
 }

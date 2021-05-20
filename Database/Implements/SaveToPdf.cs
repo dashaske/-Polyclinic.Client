@@ -9,9 +9,9 @@ using System.Text;
 
 namespace Database.Implements
 {
-    public class ReportLogic
+    public class SaveToPdf
     {
-        public static void CreateDoc(PdfInfo info)
+        public static void CreateDoc(Info info)
         {
             Document document = new Document();
             DefineStyles(document);

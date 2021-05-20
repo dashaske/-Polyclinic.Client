@@ -29,7 +29,7 @@ namespace WebApplication
             services.AddTransient<IInspections, InspectionLogic>();
             services.AddTransient<IVisit, VisitLogic>();
             services.AddTransient<IPayment, PaymentLogic>();
-            services.AddTransient<ReportLogic>();
+            services.AddTransient<SaveToPdf>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

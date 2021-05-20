@@ -5,7 +5,7 @@ using System.Text;
 
 namespace BusinessLogic.HelperModels
 {
-    public class PdfInfo
+    public class Info
     {
         public string FileName { get; set; }
         public string Title { get; set; }

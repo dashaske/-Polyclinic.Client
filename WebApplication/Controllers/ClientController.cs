@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Net.Mail;
 using System.Threading.Tasks;
 using WebApplication.Models;
 
@@ -28,13 +30,13 @@ namespace WebApplication.Controllers
         }
         public IActionResult Inspections()
         {
-            ViewBag.Doctor = user.Read(null);
-            var inspection = inspections.Read(null);
+            ViewBag.Doctor = user.GetFullList();
+            var inspection = inspections.GetFullList();
             Dictionary<int, decimal> cena = new Dictionary<int, decimal>();
             foreach (var i in inspection)
             {
                 cena.Add((int)i.Id,
-                    inspections.ReadCI(new CostInspectionsBindingModel { InspectionId = (int)i.Id }).ToList().Sum(x => x.Cena));
+                   i.costInspections.Sum(x => x.Value));
             }
             ViewBag.Cena = cena;
             ViewBag.In = inspection;
@@ -46,13 +48,13 @@ namespace WebApplication.Controllers
             {
                 ModelState.AddModelError("", TempData["ErrorLack"].ToString());
             }
-            ViewBag.Doctor = user.Read(null);
-            var inspection = inspections.Read(null);
+            ViewBag.Doctor = user.GetFullList();
+            var inspection = inspections.GetFullList();
             Dictionary<int, decimal> cena = new Dictionary<int, decimal>();
             foreach (var i in inspection)
             {
                 cena.Add((int)i.Id,
-                    inspections.ReadCI(new CostInspectionsBindingModel { InspectionId = (int)i.Id }).ToList().Sum(x => x.Cena));
+                    i.costInspections.Sum(x => x.Value));
             }
             ViewBag.Cena = cena;
             ViewBag.Inspections = inspection;
@@ -64,30 +66,30 @@ namespace WebApplication.Controllers
             {
                 ModelState.AddModelError("", "Даты должны быть разными");
             }
-            var Visits = visit.Read(new VisitBindingModel { ClientId = (int)Program.User.Id }, new DateTime(), DateTime.Now);
+            var Visits = visit.GetFilteredList(new VisitBindingModel { ClientId = (int)Program.User.Id }, new DateTime(), DateTime.Now);
             if (model.DateTo != new DateTime())
-                Visits = visit.Read(new VisitBindingModel { ClientId = (int)Program.User.Id }, model.DateFrom, model.DateTo);
+                Visits = visit.GetFilteredList(new VisitBindingModel { ClientId = (int)Program.User.Id }, model.DateFrom, model.DateTo);
             Dictionary<int, decimal> Cena = new Dictionary<int, decimal>();
             Dictionary<int, decimal> Pay = new Dictionary<int, decimal>();
             foreach (var visits in Visits)
             {
-                var vd = visit.ReadD(new InspectionsDoctorsBindingModel { VisitId = (int)visits.Id });
-                foreach (var i in vd)
+                foreach (var ins in visits.visitInspections)
                 {
-                    Cena.Add((int)i.Id,
-                    inspections.ReadCI(new CostInspectionsBindingModel { InspectionId = (int)i.InspectionId }).ToList().Sum(x => x.Cena));
-
+                    var insp = inspections.GetElement(new InspectionsBindingModel { Id = ins.Key });
+                    Cena.Add((int)ins.Key,
+                  insp.costInspections.Sum(x => x.Value));
                 }
+
                 Pay.Add((int)visits.Id,
-                 payment.Read(new PaymentsBindingModel { VisitId = (int)visits.Id }).ToList().Sum(x => x.SumPaument));
+                  visits.visitPayments.Sum(x => x.Value));
 
             }
             ViewBag.Cena = Cena;
             ViewBag.Pay = Pay;
-            ViewBag.Doctor = user.Read(null);
-            ViewBag.Payments = payment.Read(null);
-            ViewBag.InspectionsDoctors = visit.ReadD(null);
-            ViewBag.Inspections = inspections.Read(null);
+            ViewBag.Doctor = user.GetFullList();
+            ViewBag.Payments = payment.GetFullList();
+            ViewBag.InspectionsDoctors = visit.GetFullList();
+            ViewBag.Inspections = inspections.GetFullList();
             ViewBag.Visits = Visits;
             return View();
         }
@@ -97,42 +99,62 @@ namespace WebApplication.Controllers
             {
                 ModelState.AddModelError("", TempData["ErrorLack"].ToString());
             }
-            var Visit = visit.Read(new VisitBindingModel
+            var Visit = visit.GetElement(new VisitBindingModel
             {
                 Id = id
-            }, new DateTime(), DateTime.Now).FirstOrDefault();
+            });
             ViewBag.Visit = Visit;
-            ViewBag.LeftSum = Visit.Summ - payment.Read(new PaymentsBindingModel { VisitId = id }).Sum(x => x.SumPaument);
+            ViewBag.LeftSum = Visit.Summ - Visit.visitPayments.Sum(x => x.Value);
             return View();
         }
         public IActionResult SendReport(int id)
         {
-            var Visit = visit.Read(new VisitBindingModel { ClientId = (int)Program.User.Id }, new DateTime(), DateTime.Now);
+            var Visit = visit.GetFilteredList(new VisitBindingModel { ClientId = (int)Program.User.Id }, new DateTime(), DateTime.Now);
             var Title = $"Список визитов и платежей по ним клиента {Program.User.FIO}";
-            var FileName = $"D:\\data\\ReportVisit{Program.User.FIO}.pdf";
-            if (id != 0)
+            var FileName = $"D:\\data\\ReportVisit{Program.User.FIO}.";
+            SaveToPdf.CreateDoc(new Info
             {
-                Visit = visit.Read(new VisitBindingModel { Id = id }, new DateTime(), DateTime.Now);
-                Title = $"Список платежей по визиту {id} клиента {Program.User.FIO}";
-                FileName = $"D:\\data\\ReportVisitId{id}Client{Program.User.FIO}.pdf";
-            }
-            ReportLogic.CreateDoc(new PdfInfo
-            {
-                FileName = FileName,
+                FileName = FileName + "pdf",
                 Title = Title,
-                Payment = payment.Read(null),
+                Payment = payment.GetFullList(),
                 Visit = Visit
             });
+            SaveToExel.CreateDoc(new Info
+            {
+                FileName = FileName + "xlsx",
+                Title = Title,
+                Payment = payment.GetFullList(),
+                Visit = Visit
+            });
+            SaveToWord.CreateDoc(new Info
+            {
+                FileName = FileName + "docx",
+                Title = Title,
+                Payment = payment.GetFullList(),
+                Visit = Visit
+            });
+            MailAddress from = new MailAddress("yudenichevaforlab@gmail.com", "Отчет!");
+            MailAddress to = new MailAddress(Program.User.Email);
+            MailMessage m = new MailMessage(from, to);
+            m.Subject = FileName;
+            m.Attachments.Add(new Attachment($"{FileName}pdf"));
+            m.Attachments.Add(new Attachment($"{FileName}docx"));
+            m.Attachments.Add(new Attachment($"{FileName}xlsx"));
+            SmtpClient smtp = new SmtpClient("smtp.gmail.com", 587);
+            smtp.Credentials = new NetworkCredential("yudenichevaforlab@gmail.com", "passwd2001");
+            smtp.EnableSsl = true;
+            smtp.Send(m);
+
             return RedirectToAction("Visit");
         }
         [HttpPost]
         public ActionResult Payment(PaymentModel model)
         {
-            var Visit = visit.Read(new VisitBindingModel
+            var Visit = visit.GetElement(new VisitBindingModel
             {
                 Id = model.VisitId
-            }, new DateTime(), DateTime.Now).FirstOrDefault();
-            int leftSum = (int)(Visit.Summ - payment.Read(new PaymentsBindingModel { VisitId = model.VisitId }).Sum(x => x.SumPaument));
+            });
+            int leftSum = (int)(Visit.Summ - Visit.visitPayments.Sum(x => x.Value));
             if (!ModelState.IsValid)
             {
                 ViewBag.Visit = Visit;
@@ -146,7 +168,7 @@ namespace WebApplication.Controllers
                 ViewBag.LeftSum = leftSum;
                 return View(model);
             }
-            payment.CreateOrUpdate(new PaymentsBindingModel
+            payment.Insert(new PaymentsBindingModel
             {
                 VisitId = (int)Visit.Id,
                 ClientId = (int)Program.User.Id,
@@ -154,14 +176,14 @@ namespace WebApplication.Controllers
                 SumPaument = model.Sum
             });
             leftSum -= model.Sum;
-            visit.CreateOrUpdate(new VisitBindingModel
+            visit.Update(new VisitBindingModel
             {
                 Id = Visit.Id,
                 ClientId = Visit.ClientId,
                 Date = Visit.Date,
                 Summ = Visit.Summ,
-                Status = leftSum > 0 ? BusinessLogic.Enum.StatusVisit.ЧастичноОплачен : BusinessLogic.Enum.StatusVisit.Оплачен,
-            }, new List<InspectionsDoctorsViewModels> { });
+                Status = leftSum > 0 ? BusinessLogic.Enum.StatusVisit.ЧастичноОплачен : BusinessLogic.Enum.StatusVisit.Оплачен
+            });
             return RedirectToAction("Visit");
         }
         [HttpPost]
@@ -182,13 +204,13 @@ namespace WebApplication.Controllers
             }
             if (visitDoctors.Count == 0)
             {
-                ViewBag.Doctor = user.Read(null);
-                var inspection = inspections.Read(null);
+                ViewBag.Doctor = user.GetFullList();
+                var inspection = inspections.GetFullList();
                 Dictionary<int, decimal> cena = new Dictionary<int, decimal>();
                 foreach (var i in inspection)
                 {
                     cena.Add((int)i.Id,
-                        inspections.ReadCI(new CostInspectionsBindingModel { InspectionId = (int)i.Id }).ToList().Sum(x => x.Cena));
+                        i.costInspections.Sum(x => x.Value));
                 }
                 ViewBag.Cena = cena;
                 ViewBag.Inspections = inspection;
@@ -202,15 +224,19 @@ namespace WebApplication.Controllers
             {
                 t = BusinessLogic.Enum.StatusVisit.Оплачен;
             }
-            visit.CreateOrUpdate(new VisitBindingModel
+            Dictionary<int, int> visitInspections = new Dictionary<int, int> { };
+            foreach (var i in visitDoctors)
+            {
+                visitInspections.Add(i.InspectionId, i.Count);
+            }
+            visit.Insert(new VisitBindingModel
             {
                 ClientId = (int)Program.User.Id,
                 Date = DateTime.Now,
                 Status = t,
                 Summ = sum,
-
-
-            }, visitDoctors);
+                visitInspections = visitInspections
+            });
             return RedirectToAction("Visit");
         }
 
@@ -220,12 +246,12 @@ namespace WebApplication.Controllers
 
             foreach (var doctor in visitDoctors)
             {
-                var inspection = inspections.Read(new InspectionsBindingModel { Id = doctor.InspectionId }).FirstOrDefault();
+                var inspection = inspections.GetElement(new InspectionsBindingModel { Id = doctor.InspectionId });
 
                 if (inspection != null)
                 {
 
-                    sum += inspections.ReadCI(new CostInspectionsBindingModel { InspectionId = (int)inspection.Id }).Sum(x => x.Cena) * doctor.Count;
+                    sum += inspections.GetElement(new InspectionsBindingModel { Id = (int)inspection.Id }).costInspections.Sum(x => x.Value) * doctor.Count;
                 }
             }
             return sum;

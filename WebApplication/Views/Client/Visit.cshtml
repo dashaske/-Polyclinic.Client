@@ -11,7 +11,9 @@
 <hr />
 <p> <strong> <a class="btn btn-info btn-sm" asp-area="" asp-controller="Client" asp-action="CreateVisit">Оформить</a></strong></p>
 <hr />
-
+<p>
+    <a href="/Client/SendReport">Отправить список визитов и оплат по ним </a>
+</p>
 @using (Html.BeginForm())
 {
     <p>
@@ -43,19 +45,19 @@
             <td>Количество</td>
             <td>Цена</td>
         </tr>
-        @foreach (BusinessLogic.ViewModels.InspectionsDoctorsViewModels vdoctor in ViewBag.InspectionsDoctors)
+        @foreach (var vdoctor in visit.visitInspections)
 
         {
             @foreach (BusinessLogic.ViewModels.InspectionsViewModels ins in ViewBag.Inspections)
             {
                 @foreach (var doctor in ViewBag.Doctor)
                 {
-                    @if ((visit.Id == vdoctor.VisitId) && (vdoctor.InspectionId == ins.Id) && (ins.UserId == doctor.Id))
+                    @if ((vdoctor.Key == ins.Id) && (ins.UserId == doctor.Id))
                     {
                         <tr>
                             <td>@ins.Name</td>
                             <td>@doctor.FIO</td>
-                            <td>@vdoctor.Count</td>
+                            <td>@vdoctor.Value</td>
                             <td>@ViewBag.Cena[(int)ins.Id]</td>
                         </tr>
                     }
@@ -63,7 +65,7 @@
             }
         }
     </table>
-    if (visit.Status != BusinessLogic.Enum.StatusVisit.Неоплачен && ViewBag.Payments != null)
+    if (ViewBag.Pay.Count != 0)
     {
         <p>Платежи:</p>
         <table class="table">
@@ -71,7 +73,7 @@
                 <td>Дата</td>
                 <td>Сумма</td>
             </tr>
-            @foreach (BusinessLogic.ViewModels.PaymentsViewModels payment in ViewBag.Payments)
+            @foreach (var payment in ViewBag.Payments)
             {
                 if (payment.VisitId == visit.Id)
                 {
@@ -93,7 +95,7 @@
     {
         if (visit.Status == BusinessLogic.Enum.StatusVisit.ЧастичноОплачен)
         {
-            <p>К оплате: @(visit.Summ-ViewBag.Pay[visit.Id])</p>
+            <p>К оплате: @(visit.Summ - ViewBag.Pay[visit.Id])</p>
             <hr />
 
         }
@@ -101,12 +103,6 @@
             <a href="/Client/Payment/@visit.Id">Оплатить</a>
         </p>
     }
-    <p>
-        <a href="/Client/SendReport/@visit.Id">Отправить список оплат по визиту в формате .pdf</a>
-    </p>
     <hr />
 
 }
-<p>
-    <a href="/Client/SendReport">Отправить список визитов и оплат по ним в формате .pdf</a>
-</p>

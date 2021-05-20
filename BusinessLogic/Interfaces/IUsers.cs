@@ -8,7 +8,8 @@ namespace BusinessLogic.Interfaces
 {
     public interface IUsers
     {
-        List<UsersViewModels> Read(UsersBindingModel model);
-        void CreateOrUpdate(UsersBindingModel model);
+        UsersViewModels GetElement(UsersBindingModel model);
+        void Insert(UsersBindingModel model);
+        List<UsersViewModels> GetFullList();
     }
 }

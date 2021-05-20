@@ -10,20 +10,37 @@ namespace Database.Implements
 {
     public class CostLogic : ICost
     {
-        public List<CostViewModels> Read(CostBindingModel model)
+        public CostViewModels GetElement(CostBindingModel model)
+        {
+            if (model == null)
+            {
+                return null;
+            }
+            using (var context = new Database())
+            {
+                var component = context.Costs
+                .FirstOrDefault(rec => rec.Name == model.Name ||
+               rec.Id == model.Id);
+                return component != null ?
+                new CostViewModels
+                {
+                    Id = component.Id,
+                    Name = component.Name
+                } :
+               null;
+            }
+        }
+        public List<CostViewModels> GetFullList()
         {
             using (var context = new Database())
             {
                 return context.Costs
-                 .Where(rec => model == null
-                   || rec.Id == model.Id
-                   || rec.Name == model.Name)
-               .Select(rec => new CostViewModels
-               {
-                   Id = rec.Id,
-                   Name = rec.Name
-               })
-                .ToList();
+                .Select(rec => new CostViewModels
+                {
+                    Id = rec.Id,
+                    Name = rec.Name
+                })
+               .ToList();
             }
         }
     }

@@ -8,7 +8,10 @@ namespace BusinessLogic.Interfaces
 {
     public interface IPayment
     {
-        List<PaymentsViewModels> Read(PaymentsBindingModel model);
-        void CreateOrUpdate(PaymentsBindingModel model);
+        List<PaymentsViewModels> GetFullList();
+        PaymentsViewModels GetElement(PaymentsBindingModel model);
+        void Insert(PaymentsBindingModel model);
+        void Update(PaymentsBindingModel model);
+        List<PaymentsViewModels> GetFilteredList(PaymentsBindingModel model);
     }
 }
