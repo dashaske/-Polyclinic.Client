@@ -45,13 +45,13 @@ namespace Database.Implements
                         ParagraphAlignment = ParagraphAlignment.Center
                     });
 
-                    foreach (var pay in info.Payment.Where(rec => rec.VisitId == visit.Id))
+                    foreach (var pay in visit.DetailsPay)
                     {
 
                         CreateRow(new PdfRowParameters
                         {
                             Table = doctorTable,
-                            Texts = new List<string> { "Платеж", pay.DatePayment.ToString(), pay.SumPaument.ToString() },
+                            Texts = new List<string> { "Платеж", pay.Item1.ToString(), pay.Item2.ToString() },
                             Style = "Normal",
                             ParagraphAlignment = ParagraphAlignment.Left
                         });
@@ -59,7 +59,7 @@ namespace Database.Implements
                     CreateRow(new PdfRowParameters
                     {
                         Table = doctorTable,
-                        Texts = new List<string> { "", "Остаток:", (visit.Summ - info.Payment.Where(rec => rec.VisitId == visit.Id).Sum(x => x.SumPaument)).ToString() },
+                        Texts = new List<string> { "", "Остаток:", (visit.Summ - visit.DetailsPay.Sum(x => x.Item2)).ToString() },
                         Style = "Normal",
                         ParagraphAlignment = ParagraphAlignment.Left
                     });

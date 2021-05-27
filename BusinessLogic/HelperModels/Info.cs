@@ -9,7 +9,6 @@ namespace BusinessLogic.HelperModels
     {
         public string FileName { get; set; }
         public string Title { get; set; }
-        public List<VisitViewModels> Visit { get; set; }
-        public List<PaymentsViewModels> Payment { get; set; }
+        public List<ReportDetailViewModel> Visit { get; set; }
     }
 }

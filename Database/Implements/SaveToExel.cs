@@ -111,7 +111,7 @@ namespace Database.Implements
                         StyleIndex = 0U
                     });
                     i++;
-                    foreach (var pay in info.Payment.Where(rec => rec.VisitId == visit.Id))
+                    foreach (var pay in visit.DetailsPay)
                     {
                         InsertCellInWorksheet(new ExcelCellParameters
                         {
@@ -128,7 +128,7 @@ namespace Database.Implements
                             ShareStringPart = shareStringPart,
                             ColumnName = "B",
                             RowIndex = i + 2,
-                            Text = pay.DatePayment.ToString(),
+                            Text = pay.Item1.ToString(),
                             StyleIndex = 0U
                         });
                         InsertCellInWorksheet(new ExcelCellParameters
@@ -137,7 +137,7 @@ namespace Database.Implements
                             ShareStringPart = shareStringPart,
                             ColumnName = "C",
                             RowIndex = i + 2,
-                            Text = pay.SumPaument.ToString(),
+                            Text = pay.Item2.ToString(),
                             StyleIndex = 0U
                         });
 
@@ -158,7 +158,7 @@ namespace Database.Implements
                         ShareStringPart = shareStringPart,
                         ColumnName = "C",
                         RowIndex = i + 2,
-                        Text = (visit.Summ - info.Payment.Where(rec => rec.VisitId == visit.Id).Sum(x => x.SumPaument)).ToString(),
+                        Text = (visit.Summ - visit.DetailsPay.Sum(x => x.Item2)).ToString(),
                         StyleIndex = 0U
                     });
                     i++;

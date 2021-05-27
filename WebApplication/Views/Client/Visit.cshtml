@@ -9,13 +9,15 @@
     <h1>Пoсещения</h1>
 </div>
 <hr />
-<p> <strong> <a class="btn btn-info btn-sm" asp-area="" asp-controller="Client" asp-action="CreateVisit">Оформить</a></strong></p>
+<p> <strong> <a class="btn btn-info btn-sm" asp-area="" type="submit" asp-controller="Client" asp-action="CreateVisit">Оформить</a></strong></p>
 <hr />
-<p>
-    <a href="/Client/SendReport">Отправить список визитов и оплат по ним </a>
-</p>
+
+
 @using (Html.BeginForm())
 {
+    <p>
+        <button type="submit" class="btn btn-info btn-sm" asp-action="SendReport">Отправить отчет pdf</button>
+    </p>
     <p>
         Выберите даты для отображения отчета по посещениям и оплатам
     </p>
@@ -30,6 +32,7 @@
     </p>
     @Html.ValidationSummary(true, "", new { @style = "color: red" })
 }
+
 <hr />
 @foreach (var visit in ViewBag.Visits)
 {
@@ -41,7 +44,7 @@
     <table class="table">
         <tr>
             <td>Обследование</td>
-            <td>Doctor</td>
+            <td>Доктор/td>
             <td>Количество</td>
             <td>Цена</td>
         </tr>
@@ -58,7 +61,7 @@
                             <td>@ins.Name</td>
                             <td>@doctor.FIO</td>
                             <td>@vdoctor.Value</td>
-                            <td>@ViewBag.Cena[(int)ins.Id]</td>
+                            <td>@ViewBag.Cena[(int)visit.Id]</td>
                         </tr>
                     }
                 }
@@ -104,5 +107,6 @@
         </p>
     }
     <hr />
-
 }
+
+

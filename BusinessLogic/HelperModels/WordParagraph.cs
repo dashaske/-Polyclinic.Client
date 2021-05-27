@@ -6,7 +6,7 @@ namespace BusinessLogic.HelperModels
 {
     public class WordParagraph
     {
-        public List<string> Texts { get; set; }
+        public List<(string, WordParagraphProperties)> Texts { get; set; }
         public WordParagraphProperties TextProperties { get; set; }
     }
 }

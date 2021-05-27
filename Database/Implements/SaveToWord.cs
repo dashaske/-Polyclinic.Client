@@ -1,11 +1,11 @@
-﻿using DocumentFormat.OpenXml;
+﻿using BusinessLogic.HelperModels;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using BusinessLogic.HelperModels;
 
 namespace Database.Implements
 {
@@ -20,69 +20,62 @@ namespace Database.Implements
                 Body docBody = mainPart.Document.AppendChild(new Body());
                 docBody.AppendChild(CreateParagraph(new WordParagraph
                 {
-                    Texts = new List<string> { info.Title },
+                    Texts = new List<(string, WordParagraphProperties)> { (info.Title, new WordParagraphProperties { Bold = true, Size = "24", }) },
                     TextProperties = new WordParagraphProperties
                     {
-                        Bold = true,
                         Size = "24",
                         JustificationValues = JustificationValues.Center
                     }
                 }));
-                Table table = new Table();
-                TableProperties tblProp = new TableProperties(
-                    new TableBorders(
-                        new TopBorder() { Val = new EnumValue<BorderValues>(BorderValues.Single), Size = 8 },
-                        new BottomBorder() { Val = new EnumValue<BorderValues>(BorderValues.Single), Size = 8 },
-                        new LeftBorder() { Val = new EnumValue<BorderValues>(BorderValues.Single), Size = 8 },
-                        new RightBorder() { Val = new EnumValue<BorderValues>(BorderValues.Single), Size = 8 },
-                        new InsideHorizontalBorder() { Val = new EnumValue<BorderValues>(BorderValues.Single), Size = 8 },
-                        new InsideVerticalBorder() { Val = new EnumValue<BorderValues>(BorderValues.Single), Size = 8 }
-                    )
-                );
-                table.AppendChild<TableProperties>(tblProp);
-                TableRow headerRow = new TableRow();
-                TableCell headerNumberCell = new TableCell(new Paragraph(new Run(new Text("Визит"))));
-                TableCell headerNameCell = new TableCell(new Paragraph(new Run(new Text("Дата"))));
-                TableCell headerCountryCell = new TableCell(new Paragraph(new Run(new Text("Сумма"))));
-                headerRow.Append(headerNumberCell);
-                headerRow.Append(headerNameCell);
-                headerRow.Append(headerCountryCell);
-                table.Append(headerRow);
-                foreach (var visit in info.Visit)
+                foreach (var engine in info.Visit)
                 {
-                    TableRow tourRow = new TableRow();
-                    TableCell numberCell = new TableCell(new Paragraph(new Run(new Text(visit.Id.ToString()))));
-                    TableCell nameCell = new TableCell(new Paragraph(new Run(new Text(visit.Date.ToString()))));
-                    TableCell countryCell = new TableCell(new Paragraph(new Run(new Text(visit.Summ.ToString()))));
-                    tourRow.Append(numberCell);
-                    tourRow.Append(nameCell);
-                    tourRow.Append(countryCell);
-                    table.Append(tourRow);
-                    foreach (var pay in info.Payment.Where(rec => rec.VisitId == visit.Id))
+                    docBody.AppendChild(CreateParagraph(new WordParagraph
                     {
-                        tourRow = new TableRow();
-                        numberCell = new TableCell(new Paragraph(new Run(new Text("Платеж"))));
-                        nameCell = new TableCell(new Paragraph(new Run(new Text(pay.DatePayment.ToString()))));
-                        countryCell = new TableCell(new Paragraph(new Run(new Text(pay.SumPaument.ToString()))));
-                        tourRow.Append(numberCell);
-                        tourRow.Append(nameCell);
-                        tourRow.Append(countryCell);
-                        table.Append(tourRow);
+                        Texts = new List<(string, WordParagraphProperties)> { (engine.Id + "  за дату " + engine.Date + ": ", new WordParagraphProperties { Bold = true, Size = "24", }), (engine.Status.ToString() + "", new WordParagraphProperties { Size = "24" }) },
+
+                        TextProperties = new WordParagraphProperties
+                        {
+                            Size = "24",
+                            JustificationValues = JustificationValues.Both
+                        }
+                    }));
+
+                    foreach (var cost in engine.DetailsPay)
+                    {
+                        docBody.AppendChild(CreateParagraph(new WordParagraph
+                        {
+                            Texts = new List<(string, WordParagraphProperties)> { ("   " + cost.Item1 + ": ", new WordParagraphProperties { Bold = true, Size = "24", }), (cost.Item2.ToString() + " руб.", new WordParagraphProperties { Size = "24" }) },
+
+                            TextProperties = new WordParagraphProperties
+                            {
+                                Size = "24",
+                                JustificationValues = JustificationValues.Both
+                            }
+                        }));
                     }
-                    tourRow = new TableRow();
-                    numberCell = new TableCell(new Paragraph(new Run(new Text())));
-                    nameCell = new TableCell(new Paragraph(new Run(new Text("Остаток:"))));
-                    countryCell = new TableCell(new Paragraph(new Run(new Text((visit.Summ - info.Payment.Where(rec => rec.VisitId == visit.Id).Sum(x => x.SumPaument)).ToString()))));
-                    tourRow.Append(numberCell);
-                    tourRow.Append(nameCell);
-                    tourRow.Append(countryCell);
-                    table.Append(tourRow);
+                    if ((engine.Summ - engine.DetailsPay.Sum(x => x.Item2)) > 0)
+                    {
+                        docBody.AppendChild(CreateParagraph(new WordParagraph
+                        {
+                            Texts = new List<(string, WordParagraphProperties)> { ("   Остаток: " ,
+                                new WordParagraphProperties { Bold = true, Size = "24", }),
+                                    ((engine.Summ - engine.DetailsPay.Sum(x => x.Item2)).ToString() + " руб.", new WordParagraphProperties { Size = "24" }) },
+
+                            TextProperties = new WordParagraphProperties
+                            {
+                                Size = "24",
+                                JustificationValues = JustificationValues.Both
+                            }
+                        }));
+                    }
                 }
-                docBody.Append(table);
                 docBody.AppendChild(CreateSectionProperties());
                 wordDocument.MainDocumentPart.Document.Save();
             }
         }
+
+        // Настройки страницы
+
         private static SectionProperties CreateSectionProperties()
         {
             SectionProperties properties = new SectionProperties();
@@ -93,28 +86,29 @@ namespace Database.Implements
             properties.AppendChild(pageSize);
             return properties;
         }
+
+        // Создание абзаца с текстом
+
         private static Paragraph CreateParagraph(WordParagraph paragraph)
         {
             if (paragraph != null)
             {
                 Paragraph docParagraph = new Paragraph();
+
                 docParagraph.AppendChild(CreateParagraphProperties(paragraph.TextProperties));
                 foreach (var run in paragraph.Texts)
                 {
                     Run docRun = new Run();
                     RunProperties properties = new RunProperties();
-                    properties.AppendChild(new FontSize
-                    {
-                        Val = paragraph.TextProperties.Size
-                    });
-                    if (paragraph.TextProperties.Bold)
+                    properties.AppendChild(new FontSize { Val = run.Item2.Size });
+                    if (run.Item2.Bold)
                     {
                         properties.AppendChild(new Bold());
                     }
                     docRun.AppendChild(properties);
                     docRun.AppendChild(new Text
                     {
-                        Text = run,
+                        Text = run.Item1,
                         Space = SpaceProcessingModeValues.Preserve
                     });
                     docParagraph.AppendChild(docRun);
@@ -123,8 +117,10 @@ namespace Database.Implements
             }
             return null;
         }
-        private static ParagraphProperties
-        CreateParagraphProperties(WordParagraphProperties paragraphProperties)
+
+        // Задание форматирования для абзаца
+
+        private static ParagraphProperties CreateParagraphProperties(WordParagraphProperties paragraphProperties)
         {
             if (paragraphProperties != null)
             {
@@ -145,10 +141,6 @@ namespace Database.Implements
                     {
                         Val = paragraphProperties.Size
                     });
-                }
-                if (paragraphProperties.Bold)
-                {
-                    paragraphMarkRunProperties.AppendChild(new Bold());
                 }
                 properties.AppendChild(paragraphMarkRunProperties);
                 return properties;

@@ -11,20 +11,20 @@
 {
     @Html.ValidationSummary(true, "", new { @style = "color: red" })
     ФИО:
-        <br>
-        @Html.EditorFor(x => x.FIO)
-        <br>
-        Пароль:
-            <br>
-            @Html.EditorFor(x => x.Password)
-            <br>
-            <label class="control-label">Статус<br /></label>
-            <select id="Status" name="Status">
-                <option>Сотрудник</option>
-                <option>Клиент</option>
-            </select>
-                      
-            <br>
-            <button class="btn btn-info btn-sm" type="submit">Войти</button>
+    <br>
+    @Html.EditorFor(x => x.FIO)
+    <br>
+    Пароль:
+    <br>
+    @Html.EditorFor(x => x.Password)
+    <br>
+    <label class="control-label">Статус<br /></label>
+    <select id="Status" name="Status">
+        <option>Сотрудник</option>
+        <option>Клиент</option>
+    </select>
 
- }
+    <br>
+    <button class="btn btn-info btn-sm" type="submit">Войти</button>
+
+}

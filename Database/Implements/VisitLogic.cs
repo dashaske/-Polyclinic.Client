@@ -138,13 +138,15 @@ namespace Database.Implements
             }
             using (var context = new Database())
             {
-                return context.Visis
+                var t = context.Visis
                  .Include(rec => rec.InspectionDoctor)
                 .ThenInclude(rec => rec.Inspection)
                  .Include(rec => rec.Payment)
                 .ThenInclude(rec => rec.User)
                .Where(rec =>
                    (rec.Date <= DateTo && rec.Date >= DateFrom && rec.ClientId == model.ClientId)
+                   &&
+                     (((model.Selected == null) || model.Selected.Contains((int)rec.Id)))
                )
                .ToList()
                .Select(rec => new VisitViewModels
@@ -160,6 +162,7 @@ namespace Database.Implements
                    .ToDictionary(recPC => (int)recPC.Id, recPC => (recPC.SumPaument))
                })
                .ToList();
+                return t;
             }
         }
         public VisitViewModels GetElement(VisitBindingModel model)
@@ -202,7 +205,7 @@ namespace Database.Implements
             {
                 var product = context.InspectionDoctors
                .FirstOrDefault(rec => rec.Id == model.Id
-                   || rec.InspectionId == model.InspectionId || rec.VisitId == model.VisitId);
+                   || rec.InspectionId == model.InspectionId && rec.VisitId == model.VisitId);
                 return product != null ?
                 new InspectionsDoctorsViewModels
                 {

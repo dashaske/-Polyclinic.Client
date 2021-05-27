@@ -11,17 +11,22 @@ using System.Net;
 using System.Net.Mail;
 using System.Threading.Tasks;
 using WebApplication.Models;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace WebApplication.Controllers
 {
     public class ClientController : Controller
     {
+        private readonly IWebHostEnvironment _environment;
         private readonly IInspections inspections;
         private readonly IVisit visit;
         private readonly IUsers user;
         private readonly IPayment payment;
-        public ClientController(IUsers user, IPayment payment, IInspections inspections, IVisit visit)
+        private readonly ReportLogic logic;
+        public ClientController(IWebHostEnvironment environment, IUsers user, ReportLogic logic, IPayment payment, IInspections inspections, IVisit visit)
         {
+            this.logic = logic;
             this.payment = payment;
             this.user = user;
             this.inspections = inspections;
@@ -76,7 +81,15 @@ namespace WebApplication.Controllers
                 foreach (var ins in visits.visitInspections)
                 {
                     var insp = inspections.GetElement(new InspectionsBindingModel { Id = ins.Key });
-                    Cena.Add((int)ins.Key,
+                    Cena.Add(
+                        (int)visit.GetElement(
+                            new InspectionsDoctorsBindingModel
+                            {
+                                InspectionId = ins.Key,
+                                VisitId = (int)visits.Id
+                            }
+                            ).Id
+                       ,
                   insp.costInspections.Sum(x => x.Value));
                 }
 
@@ -107,45 +120,123 @@ namespace WebApplication.Controllers
             ViewBag.LeftSum = Visit.Summ - Visit.visitPayments.Sum(x => x.Value);
             return View();
         }
-        public IActionResult SendReport(int id)
+        public IActionResult SendReport(ReportModel model)
         {
-            var Visit = visit.GetFilteredList(new VisitBindingModel { ClientId = (int)Program.User.Id }, new DateTime(), DateTime.Now);
-            var Title = $"Список визитов и платежей по ним клиента {Program.User.FIO}";
-            var FileName = $"D:\\data\\ReportVisit{Program.User.FIO}.";
-            SaveToPdf.CreateDoc(new Info
+            if (model.DateFrom > model.DateTo)
             {
-                FileName = FileName + "pdf",
-                Title = Title,
-                Payment = payment.GetFullList(),
-                Visit = Visit
-            });
-            SaveToExel.CreateDoc(new Info
+                ModelState.AddModelError("", "Даты должны быть разными");
+                return View("Visit");
+            }
+            logic.SaveToPdfFile(new ReportBindingModel
             {
-                FileName = FileName + "xlsx",
-                Title = Title,
-                Payment = payment.GetFullList(),
-                Visit = Visit
+                FileName = @".\wwwroot\Report\ReportVisit.pdf",
+                Title = $"Список визитов и платежей по ним клиента {Program.User.FIO}",
+                User = Program.User,
+                dateof = model.DateFrom,
+                dateto = model.DateTo
             });
-            SaveToWord.CreateDoc(new Info
-            {
-                FileName = FileName + "docx",
-                Title = Title,
-                Payment = payment.GetFullList(),
-                Visit = Visit
-            });
-            MailAddress from = new MailAddress("yudenichevaforlab@gmail.com", "Отчет!");
-            MailAddress to = new MailAddress(Program.User.Email);
-            MailMessage m = new MailMessage(from, to);
-            m.Subject = FileName;
-            m.Attachments.Add(new Attachment($"{FileName}pdf"));
-            m.Attachments.Add(new Attachment($"{FileName}docx"));
-            m.Attachments.Add(new Attachment($"{FileName}xlsx"));
-            SmtpClient smtp = new SmtpClient("smtp.gmail.com", 587);
-            smtp.Credentials = new NetworkCredential("yudenichevaforlab@gmail.com", "passwd2001");
-            smtp.EnableSsl = true;
-            smtp.Send(m);
-
             return RedirectToAction("Visit");
+        }
+
+        public IActionResult SendReportExel(ReportModel model)
+        {
+            if (model.DateFrom > model.DateTo)
+            {
+                ModelState.AddModelError("", "Даты должны быть разными");
+                return View("Visit");
+            }
+            logic.SaveDetailToExcelFile(new ReportBindingModel
+            {
+                FileName = @".\wwwroot\Report\ListVisit.xlsx",
+                Title = $"Список визитов и платежей по ним клиента {Program.User.FIO}",
+                User = Program.User,
+                dateof = model.DateFrom,
+                dateto = model.DateTo,
+            });            
+            return RedirectToAction("Visit");
+        }
+        public IActionResult SendReportWord(ReportModel model)
+        {
+            if (model.DateFrom > model.DateTo)
+            {
+                ModelState.AddModelError("", "Даты должны быть разными");
+                return View("Visit");
+            }
+            logic.SaveDetailsToWordFile(new ReportBindingModel
+            {
+                FileName = @".\wwwroot\Report\ListVisit.docx",
+                Title = $"Список визитов и платежей по ним клиента {Program.User.FIO}",
+                User = Program.User,
+                dateof = model.DateFrom,
+                dateto = model.DateTo
+            });
+            return RedirectToAction("Visit");
+        }
+        public IActionResult Spisok()
+        {
+            ViewData["Id"] = new MultiSelectList(
+                visit.GetFilteredList(
+                    new VisitBindingModel { ClientId = (int)Program.User.Id }, new DateTime(), DateTime.Now), "Id", "Date");
+            return View();
+        }
+        [HttpPost]
+        public IActionResult MakeListDoc([Bind("Selected")] ReportBindingModel model)
+        {
+            model.FileName = @".\wwwroot\Report\ListVisit.docx";
+            model.User = Program.User;
+            model.dateof = new DateTime();
+            model.dateto = DateTime.Now;
+            model.Title = $"Список визитов и платежей по ним клиента {Program.User.FIO}";
+            logic.SaveDetailsToWordFile(model);
+            ViewData["Id"] = new MultiSelectList(
+                visit.GetFilteredList(
+                    new VisitBindingModel { ClientId = (int)Program.User.Id }, new DateTime(), DateTime.Now), "Id", "Date");
+
+            return View("Spisok");
+        }
+
+        [HttpPost]
+        public IActionResult MakeListXls([Bind("Selected")] ReportBindingModel model)
+        {
+            model.FileName = @".\wwwroot\Report\ListVisit.xlsx";
+            model.User = Program.User;
+            model.dateof = new DateTime();
+            model.dateto = DateTime.Now;
+            model.Title = $"Список визитов и платежей по ним клиента {Program.User.FIO}";
+            logic.SaveDetailToExcelFile(model);
+            ViewData["Id"] = new MultiSelectList(
+                visit.GetFilteredList(
+                    new VisitBindingModel { ClientId = (int)Program.User.Id }, new DateTime(), DateTime.Now), "Id", "Date");
+
+            return View("Spisok");
+        }
+        public IActionResult Diagram()
+        {
+
+            return View();
+        }
+        [HttpGet]
+        public JsonResult Metod()
+        {
+            List<DiagramViewModel> testDataFirst = new List<DiagramViewModel>();
+            for (int i = 1; i < 13; i++)
+            {
+                var visits = visit.GetFilteredList(new VisitBindingModel { ClientId = (int)Program.User.Id },
+                  new DateTime(DateTime.Now.Year, i, 1),
+                  new DateTime(DateTime.Now.Year, i, 1).AddMonths(1).AddDays(-1));
+                var count = 0;
+                foreach (var v in visits)
+                    count = count + v.visitInspections.Count();// считает не визиты а обследования . 
+                //то есть сколько разных процедур ты посетил за месяц, если бы у тебя было 5 визитов в каждом было две процедуры пломбирование и электрофарез, 
+                //то посчитается как 10 Вопросы? понятно все я пошла?
+                // а можно сделать формирование отчёта пдф на форму? типо чтоб сначала можжно было сформировтаь а потом отправить только пдф?да
+                testDataFirst.Add(new DiagramViewModel()
+                {
+                    cityName = new DateTime(DateTime.Now.Year, i, 1).Month.ToString(),
+                    PopulationYear2020 = count
+                });
+            }
+            return Json(testDataFirst);
         }
         [HttpPost]
         public ActionResult Payment(PaymentModel model)

@@ -14,5 +14,6 @@ namespace BusinessLogic.BindingModel
         public StatusVisit Status { get; set; }
         public Dictionary<int, int> visitInspections { get; set; }// costid, cena
         public Dictionary<int, decimal> visitPayments { get; set; }// costid, cena
+        public List<int> Selected { get; set; }
     }
 }

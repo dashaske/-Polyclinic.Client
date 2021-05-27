@@ -89,7 +89,7 @@ namespace Database.Implements
                 }
             }
         }
-        public PaymentsViewModels GetElement(PaymentsBindingModel model)//не используется
+        public PaymentsViewModels GetElement(PaymentsBindingModel model)
         {
             if (model == null)
             {

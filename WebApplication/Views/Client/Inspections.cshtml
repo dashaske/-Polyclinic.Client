@@ -12,17 +12,17 @@
         <td>Название</td>
         <td>Цена</td>
     </tr>
-    @foreach (var  ins in ViewBag.In)
+    @foreach (var ins in ViewBag.In)
     {
         @foreach (var doctor in ViewBag.Doctor)
         {
             @if (doctor.Id == ins.UserId)
             {
-                 <tr>
-                     <td>@doctor.FIO</td>
+                <tr>
+                    <td>@doctor.FIO</td>
                     <td>@ins.Name</td>
-                     <td>@ViewBag.Cena[ins.Id]</td>
-                 </tr>
+                    <td>@ViewBag.Cena[ins.Id]</td>
+                </tr>
             }
         }
     }
